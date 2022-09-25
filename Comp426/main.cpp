@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <stdlib.h>
+#include <vector>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -9,10 +10,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "Mesh.h"
+
 
 const float toRadians = 3.14159265f / 180.0f;
 
-GLuint VAO, VBO, shader, uniformModel;
+std::vector< Mesh* > meshList;
+
+GLuint shader, uniformModel, uniformProjection;
 
 bool direction = true;
 float triOffset = 0.0f;
@@ -24,7 +29,7 @@ bool sizeDirection = true;
 float currentSize = 0.1f;
 
 // vertex shader
-static const char* vShader = "#version 400 \n layout (location = 0) in vec3 pos; uniform mat4 model; \n void main() { gl_Position = model * vec4( pos, 1.0 ); }";
+static const char* vShader = "#version 400 \n layout (location = 0) in vec3 pos; uniform mat4 model; uniform mat4 projection; \n void main() { gl_Position = projection * model * vec4( pos, 1.0 ); }";
 
 // fragment shader
 static const char* fShader = "#version 400 \n out vec4 colour; \n void main() { colour = vec4( 0.0, 0.0, 0.0, 1.0 ); }";
@@ -93,33 +98,29 @@ void CompileShaders()
 	}
 
 	uniformModel = glGetUniformLocation( shader, "model");
+	uniformProjection = glGetUniformLocation( shader, "projection");
 
 }
 
 void createTriangle()
 { 
-	GLfloat verticesTriangles[] = { -0.25, -0.25, 0.0, 
+	const int NUM_OF_VERTICES_IN_TRIANGLE = 9;
+
+	GLfloat triangle1Vertices[] = { -0.25, -0.25, 0.0, 
 									 0.25, -0.25, 0.0,
-									 0.0, 1.0, 0.0,
+									 0.0, 1.0, 0.0 };
 
-									-0.25, -0.25, 0.0,
+	Mesh* triangle1 = new Mesh();
+	triangle1->createMesh( triangle1Vertices, NUM_OF_VERTICES_IN_TRIANGLE );
+	meshList.push_back( triangle1 );
+
+	GLfloat triangle2Vertices[] = { -0.25, -0.25, 0.0,
 									 0.25, -0.25, 0.0,
-									 0.0, 1.0, 0.0,
-								  };
+									 0.0, 1.0, 0.0 };
 
-	// copy the vertices onto the graphics card by generating a new buffer, binding the data and copying the values into the newly generated buffer
-	glGenBuffers( 1, &VBO);
-	glBindBuffer( GL_ARRAY_BUFFER, VBO);
-	glBufferData( GL_ARRAY_BUFFER, sizeof(verticesTriangles), verticesTriangles, GL_STATIC_DRAW );
-
-	glGenVertexArrays( 1, &VAO );
-	glBindVertexArray( VAO );
-
-	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 );
-	glEnableVertexAttribArray( 0 );
-	glBindBuffer( GL_ARRAY_BUFFER, VBO);
-
-	glBindVertexArray( VAO );
+	Mesh* triangle2 = new Mesh();
+	triangle2->createMesh( triangle1Vertices, NUM_OF_VERTICES_IN_TRIANGLE );
+	meshList.push_back( triangle2 );
 
 }
 
@@ -196,6 +197,8 @@ int main()
 	createTriangle();
 	CompileShaders();
 
+	glm::mat4 projection = glm::perspective( 45.0f, (GLfloat) vmode->width / vmode->height, 0.1f, 100.0f );
+
 	// loop until window closes
 	while ( !glfwWindowShouldClose( mainWindow ) )
 	{
@@ -215,31 +218,28 @@ int main()
 		if ( triOffset >= vmode->width || triOffset >= vmode->height )
 		{
 			triOffset = 0;
-			model = glm::translate(model, glm::vec3(triOffset, triOffset, 0.0f));
+			std::cout << "Wrap around!" << std::endl;
+			//  = glm::translate(model, glm::vec3(triOffset, triOffset, -2.5f));
 		}
 		else
 		{
 			triOffset += triIncrement;
-			model = glm::translate(model, glm::vec3(triOffset, triOffset, 0.0f));
+			// model = glm::translate(model, glm::vec3(triOffset, triOffset, -2.5f));
 		}
 
 		// model = glm::rotate( model, currentAngle * toRadians, glm::vec3( 0.0f, 0.0f, 1.0f ) );
+
+		model = glm::translate(model, glm::vec3(triOffset, triOffset, -2.5f));
 		model = glm::scale(model, glm::vec3(currentSize, currentSize, 1.0f));
-
-		glUniformMatrix4fv( uniformModel, 1, GL_FALSE, glm::value_ptr(model) );
-
-		glBindVertexArray( VAO );
-		glDrawArrays(GL_TRIANGLES, 0, 3 ); // draw one triangle for every three points
-
-		// draw another triangle
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(triOffset, 0.0f, 0.0f));
-		model = glm::scale(model, glm::vec3(currentSize, currentSize, 1.0f));
-
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 3, 3);
+		glUniformMatrix4fv(uniformProjection, 1, GL_FALSE, glm::value_ptr(projection));
+		meshList[0]->renderMesh();
 
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(0.0f, triOffset, -2.5f));
+		model = glm::scale(model, glm::vec3(currentSize, currentSize, 1.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		meshList[1]->renderMesh();
 
 		glUseProgram(0); // unassign shader
 		 
