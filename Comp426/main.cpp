@@ -12,10 +12,12 @@
 
 #include "Mesh.h"
 #include "Shader.h"
+#include "WindowManager.h"
 
 
 const float toRadians = 3.14159265f / 180.0f;
 
+WindowManager windowManager;
 std::vector< Mesh* > meshList;
 std::vector< Shader > shaderList;
 
@@ -63,86 +65,21 @@ void createTriangle()
 
 }
 
-void _update_fps_counter(GLFWwindow* window) {
-	static double previous_seconds = glfwGetTime();
-	static int frame_count;
-	double current_seconds = glfwGetTime();
-	double elapsed_seconds = current_seconds - previous_seconds;
-
-	if (elapsed_seconds > 0.25) 
-	{
-		previous_seconds = current_seconds;
-		double fps = (double) frame_count / elapsed_seconds;
-		char tmp[128];
-		sprintf_s(tmp, "opengl @ fps: %.2f", fps);
-		glfwSetWindowTitle(window, tmp);
-		frame_count = 0;
-	}
-
-	frame_count++;
-}
-
 
 int main()
 {
-	// Initialize glfw 
-	if ( !glfwInit() )
-	{
-		std::cout << "GLFW initialization failed!" << std::endl;
-		glfwTerminate();
-		return 1;
-	}
-
-	// Setup glfw window properties
-	// Open gl version
-	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
-	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 ); // setting version 3.3
-	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE ); // core profile = no backwards compatibility
-	glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE ); // all foward compatibility
-	glfwWindowHint(GLFW_SAMPLES, 4); // anti-aliasing
-
-	// Configure fullscreen mode
-	GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
-	const GLFWvidmode* vmode = glfwGetVideoMode(primaryMonitor);
-	GLFWwindow* mainWindow = glfwCreateWindow( vmode->width, vmode->height, "Main Window", NULL, NULL );
-
-	if (!mainWindow)
-	{
-		std::cout << "GLFW main window creation failed!" << std::endl;
-		return 1;
-	}
-
-	// Get buffer size information
-	int bufferWidth, bufferHeigth;
-	glfwGetFramebufferSize( mainWindow, &bufferWidth, &bufferHeigth );
-
-	// set context for glew to use
-	glfwMakeContextCurrent( mainWindow );
-
-	// Allow modern extension features
-	glewExperimental = GL_TRUE;
-
-	if ( glewInit() != GLEW_OK )
-	{
-		std::cout << "Glew initialization failed!" << std::endl;
-		glfwDestroyWindow(mainWindow);
-		glfwTerminate();
-		return 1;
-	}
-
-	// Setup viewport size
-	glViewport( 0, 0, bufferWidth, bufferHeigth );
+	windowManager.initialize();
 
 	createTriangle();
 	createShaders();
 
 	GLuint uniformProjection = 0, uniformModel = 0;
-	glm::mat4 projection = glm::perspective( 45.0f, (GLfloat) vmode->width / vmode->height, 0.1f, 100.0f );
+	glm::mat4 projection = glm::perspective( 45.0f, (GLfloat) windowManager.getBufferWidth() / windowManager.getBufferHeight(), 0.1f, 100.0f);
 
 	// loop until window closes
-	while ( !glfwWindowShouldClose( mainWindow ) )
+	while ( !windowManager.getShouldWindowClose() )
 	{
-		_update_fps_counter(mainWindow);
+		windowManager.update_fps_counter();
 
 		// Get + Handle user input events
 		glfwPollEvents();
@@ -157,17 +94,19 @@ int main()
 
 		glm::mat4 model(1.0f);
 		
-		if ( triOffset >= vmode->width || triOffset >= vmode->height )
-		{
-			triOffset = 0;
-			std::cout << "Wrap around!" << std::endl;
-			//  = glm::translate(model, glm::vec3(triOffset, triOffset, -2.5f));
-		}
-		else
-		{
-			triOffset += triIncrement;
-			// model = glm::translate(model, glm::vec3(triOffset, triOffset, -2.5f));
-		}
+		//if ( triOffset >= vmode->width || triOffset >= vmode->height )
+		//{
+		//	triOffset = 0;
+		//	std::cout << "Wrap around!" << std::endl;
+		//	//  = glm::translate(model, glm::vec3(triOffset, triOffset, -2.5f));
+		//}
+		//else
+		//{
+		//	triOffset += triIncrement;
+		//	// model = glm::translate(model, glm::vec3(triOffset, triOffset, -2.5f));
+		//}
+
+		triOffset += triIncrement;
 
 		// model = glm::rotate( model, currentAngle * toRadians, glm::vec3( 0.0f, 0.0f, 1.0f ) );
 
@@ -186,10 +125,10 @@ int main()
 		// unassign shader
 		glUseProgram(0); // todo: should probably do this in a function
 		 
-		glfwSwapBuffers( mainWindow );
+		windowManager.swapBuffers();
 
-		if (GLFW_PRESS == glfwGetKey(mainWindow, GLFW_KEY_ESCAPE)) {
-			glfwSetWindowShouldClose(mainWindow, 1);
+		if (GLFW_PRESS == glfwGetKey(windowManager.getMainWindow(), GLFW_KEY_ESCAPE)) {
+			glfwSetWindowShouldClose(windowManager.getMainWindow(), 1);
 		}
 	}
 
