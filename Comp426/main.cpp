@@ -21,13 +21,8 @@ WindowManager windowManager;
 std::vector< Mesh* > meshList;
 std::vector< Shader > shaderList;
 
-bool direction = true;
 float triOffset = 0.0f;
-float triMaxOffset = 0.7f;
 float triIncrement = 0.0005f;
-
-float currentAngle = 0.0f;
-bool sizeDirection = true;
 float currentSize = 0.1f;
 
 // vertex shader
