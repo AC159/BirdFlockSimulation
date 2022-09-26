@@ -121,10 +121,6 @@ int main()
 		glUseProgram(0); // todo: should probably do this in a function
 		 
 		windowManager.swapBuffers();
-
-		if (GLFW_PRESS == glfwGetKey(windowManager.getMainWindow(), GLFW_KEY_ESCAPE)) {
-			glfwSetWindowShouldClose(windowManager.getMainWindow(), 1);
-		}
 	}
 
 	return 0;

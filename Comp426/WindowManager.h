@@ -8,6 +8,7 @@
 class WindowManager
 {
 public:
+	WindowManager();
 
 	int initialize();
 
@@ -15,6 +16,10 @@ public:
 
 	GLint getBufferWidth() { return bufferWidth; }
 	GLint getBufferHeight() { return bufferHeigth; }
+
+	bool* getKeys() { return keys; }
+	GLfloat getXChange();
+	GLfloat getYChange();
 
 	bool getShouldWindowClose() { return glfwWindowShouldClose( mainWindow ); }
 
@@ -24,8 +29,22 @@ public:
 	~WindowManager();
 
 private:
+	// Private functions
+	void createCallbacks();
+	static void handleKeyPresses(GLFWwindow* window, int key, int code, int action, int mode);
+	static void handleMouse(GLFWwindow* window, double xPos, double yPos);
+
+	// Private variables
 	GLFWwindow* mainWindow;
 	GLint width, height;
 	GLint bufferWidth, bufferHeigth;
+
+	bool keys[1024]; // covering range of ASCII characters
+
+	GLfloat lastX;
+	GLfloat lastY;
+	GLfloat xChange;
+	GLfloat yChange;
+	bool mouseFirstMoved;
 };
 
