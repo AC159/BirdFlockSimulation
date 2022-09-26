@@ -8,6 +8,8 @@ WindowManager::WindowManager()
 	{
 		keys[i] = false;
 	}
+	xChange = 0.0f;
+	yChange = 0.0f;
 }
 
 int WindowManager::initialize()
