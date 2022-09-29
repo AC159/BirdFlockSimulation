@@ -43,37 +43,92 @@ void createShaders()
 	shaderList.push_back(*shader1);
 }
 
-void createTriangle()
+void createBoids()
 { 
-	const int NUM_OF_VERTICES_IN_TRIANGLE = 9;
-
-	GLfloat triangle1Vertices[] = { -0.25, -0.25, 0.0, 
-									 0.25, -0.25, 0.0,
-									 0.0, 1.0, 0.0 };
-
-	Mesh* triangle1 = new Mesh();
-	triangle1->createMesh( triangle1Vertices, NUM_OF_VERTICES_IN_TRIANGLE );
-	meshList.push_back( triangle1 );
-
-	GLfloat triangle2Vertices[] = { -0.25, -0.25, 0.0,
-									 0.25, -0.25, 0.0,
-									 0.0, 1.0, 0.0 };
-
-	Mesh* triangle2 = new Mesh();
-	triangle2->createMesh( triangle1Vertices, NUM_OF_VERTICES_IN_TRIANGLE );
-	meshList.push_back( triangle2 );
+	// Loop to create flocks of boids
+	for (int i = 0; i < 1; ++i)
+	{
+		// create several boids, this represents a flock
+		for (int j = 0; j < 10; ++j)
+		{
+			Mesh* boid = new Mesh();
+			boid->createMesh();
+			meshList.push_back(boid);
+		}
+	}
 
 }
 
+void drawBoids(GLuint uniformProjection, GLuint uniformModel, GLuint uniformView, glm::mat4 projection)
+{
+	for (Mesh* boid : meshList)
+	{
+		glm::mat4 model(1.0f);
+
+		// Rule 1
+		// get the average position of the flock
+		//glm::vec3 avgPositionOfFlock(0.0f);
+		//for (Mesh* b : meshList)
+		//{
+		//	if (b != boid)
+		//	{
+		//		avgPositionOfFlock += b->getCurrentPosition();
+		//	}
+		//}
+
+		//printf("avgPositionOfFlock vector:\n x: %.2f y: %.2f z: %.2f \n", avgPositionOfFlock.x, avgPositionOfFlock.y, avgPositionOfFlock.z);
+		//avgPositionOfFlock /= meshList.size() - 1;
+		//avgPositionOfFlock /= 100; // move 1% in that direction
+
+		// Rule 2: the boid should steer away from other boids
+		/*glm::vec3 v2(0.0f);
+		for (Mesh* b : meshList)
+		{
+			if (b != boid)
+			{
+				if (glm::length(b->getCurrentPosition() - boid->getCurrentPosition()) < 100)
+				{
+					v2 = v2 - glm::length(b->getCurrentPosition() - boid->getCurrentPosition());
+				}
+			}
+		}*/
+
+
+		// generate a random number in the grid that boids will follow
+		float xCoordinate = std::rand() % 3 - 1;
+		float yCoordinate = std::rand() % 3 - 1;
+
+		glm::vec3 direction = boid->getCurrentPosition() - glm::vec3(xCoordinate, yCoordinate, 0.0f); // position where the boid should translate
+		// printf("Direction vector:\n x: %.2f y: %.2f z: %.2f \n", direction.x, direction.y, direction.z);
+
+		// model = glm::rotate( model, currentAngle * toRadians, glm::vec3( 0.0f, 0.0f, 1.0f ) );
+
+		// model = glm::scale(model, glm::vec3(currentSize, currentSize, 1.0f));
+		model = glm::translate(model, direction);
+		// model = glm::scale(model, glm::vec3(0.01f, 0.01f, 1.0f));
+		boid->setCurrentPosition( (glm::vec3) model[3] );
+
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		glUniformMatrix4fv(uniformProjection, 1, GL_FALSE, glm::value_ptr(projection));
+		glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(camera.calculateViewMatrix()));
+
+		boid->renderMesh();
+	}
+	// unassign shader
+	glUseProgram(0); // todo: should probably do this in a function
+}
 
 int main()
 {
+	// initialize random seed which will be used when creating new boids in the Mesh class
+	srand(time(NULL));
+
 	windowManager.initialize();
 
-	createTriangle();
+	createBoids();
 	createShaders();
 
-	camera = Camera( glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), -90.0f, 0.0f, 5.0f, 0.2f);
+	camera = Camera( glm::vec3(0.0f, 0.0f, 30.0f), glm::vec3(0.0f, 1.0f, 0.0f), -90.0f, 0.0f, 5.0f, 0.2f);
 
 	GLuint uniformProjection = 0, uniformModel = 0, uniformView = 0;
 	glm::mat4 projection = glm::perspective( 45.0f, (GLfloat) windowManager.getBufferWidth() / windowManager.getBufferHeight(), 0.1f, 100.0f);
@@ -91,7 +146,7 @@ int main()
 		glfwPollEvents();
 
 		camera.keyControl( windowManager.getKeys(), deltaTime );
-		camera.mouseControl( windowManager.getXChange(), windowManager.getYChange());
+		// camera.mouseControl( windowManager.getXChange(), windowManager.getYChange());
 
 		// Clear window
 		glClearColor( 0.5f, 0.5f, 0.5f, 1.0f );
@@ -102,39 +157,7 @@ int main()
 		uniformProjection = shaderList[0].getProjectionLocation();
 		uniformView = shaderList[0].getViewLocation();
 
-		glm::mat4 model(1.0f);
-		
-		//if ( triOffset >= vmode->width || triOffset >= vmode->height )
-		//{
-		//	triOffset = 0;
-		//	std::cout << "Wrap around!" << std::endl;
-		//	//  = glm::translate(model, glm::vec3(triOffset, triOffset, -2.5f));
-		//}
-		//else
-		//{
-		//	triOffset += triIncrement;
-		//	// model = glm::translate(model, glm::vec3(triOffset, triOffset, -2.5f));
-		//}
-
-		triOffset += triIncrement;
-
-		// model = glm::rotate( model, currentAngle * toRadians, glm::vec3( 0.0f, 0.0f, 1.0f ) );
-
-		// model = glm::translate(model, glm::vec3(triOffset, triOffset, -2.5f));
-		// model = glm::scale(model, glm::vec3(currentSize, currentSize, 1.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		glUniformMatrix4fv(uniformProjection, 1, GL_FALSE, glm::value_ptr(projection));
-		glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(camera.calculateViewMatrix()));
-		meshList[0]->renderMesh();
-
-		model = glm::mat4(1.0f);
-		// model = glm::translate(model, glm::vec3(0.0f, triOffset, -2.5f));
-		// model = glm::scale(model, glm::vec3(currentSize, currentSize, 1.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		meshList[1]->renderMesh();
-
-		// unassign shader
-		glUseProgram(0); // todo: should probably do this in a function
+		drawBoids(uniformProjection, uniformModel, uniformView, projection);
 		 
 		windowManager.swapBuffers();
 	}

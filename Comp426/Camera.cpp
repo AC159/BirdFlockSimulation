@@ -41,6 +41,7 @@ void Camera::keyControl(bool* keys, GLfloat deltaTime)
 	{
 		position += right * velocity;
 	}
+	// printf("Position x: %.2f y: %.2f z: %.2f", position.x, position.y, position.z);
 }
 
 glm::mat4 Camera::calculateViewMatrix()
@@ -80,6 +81,9 @@ void Camera::update()
 	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
 	front = glm::normalize(front); // make it a unit vector
 
-	right = glm::normalize( glm::cross(front, worldUp) );
-	up = glm::normalize(glm::cross(right, front));
+	right = glm::normalize( glm::cross(worldUp, front) );
+	up = glm::normalize(glm::cross(front, right));
+
+	printf("UP x: %.2f y: %.2f z: %.2f \n", up.x, up.y, up.z);
+	printf("Right x: %.2f y: %.2f z: %.2f \n", right.x, right.y, right.z);
 }
